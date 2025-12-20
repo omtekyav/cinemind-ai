@@ -10,3 +10,6 @@ fake-useragent
 pytest
 pytest-asyncio
 pytest-mock
+pypdf
+langchain-text-splitters
+lxml
