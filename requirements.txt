@@ -13,3 +13,6 @@ pytest-mock
 pypdf
 langchain-text-splitters
 lxml
+google-generativeai
+chromadb
+python-dotenv
