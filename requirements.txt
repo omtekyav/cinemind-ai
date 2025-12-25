@@ -16,3 +16,5 @@ lxml
 google-generativeai
 chromadb
 python-dotenv
+requests
+tenacity
