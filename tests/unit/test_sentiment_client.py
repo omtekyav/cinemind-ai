@@ -1,7 +1,14 @@
 import pytest
 import requests
-from unittest.mock import Mock, patch, MagicMock
-# DİKKAT: Import yolu src.services altından olmalı
+from unittest.mock import Mock, patch, MagicMock, call
+import sys
+from pathlib import Path
+
+# Proje kök dizinini Python path'ine ekle
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# DOĞRU IMPORT: src.services.sentiment_client modülünden
 from src.services.sentiment_client import SentimentClient, _should_retry
 
 
