@@ -18,3 +18,4 @@ chromadb
 python-dotenv
 requests
 tenacity
+pypdf
