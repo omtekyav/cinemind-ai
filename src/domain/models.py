@@ -51,7 +51,6 @@ class Movie(BaseModel):
     runtime: Optional[int] = Field(None, description="Runtime in minutes")
     created_at: datetime = Field(default_factory=get_utc_now)
 
-    #**Swagger UI** (API Dokümantasyonu) oluşturur
     class Config:
         json_schema_extra = {
             "example": {
@@ -83,6 +82,9 @@ class TMDbReview(BaseModel):
     source: Literal[DataSource.TMDB] = DataSource.TMDB
     sentiment: Optional[SentimentResult] = None
     created_at: datetime = Field(default_factory=get_utc_now)
+    
+    class Config:
+        use_enum_values = True
 
 class IMDbReview(BaseModel):
     """User review scraped from IMDb."""
@@ -96,6 +98,9 @@ class IMDbReview(BaseModel):
     source: Literal[DataSource.IMDB] = DataSource.IMDB
     sentiment: Optional[SentimentResult] = None
     created_at: datetime = Field(default_factory=get_utc_now)
+    
+    class Config:
+        use_enum_values = True
 
 class ScriptScene(BaseModel):
     """A scene from a movie script (PDF)."""
@@ -107,6 +112,9 @@ class ScriptScene(BaseModel):
     page_number: Optional[int] = None
     source: Literal[DataSource.SCRIPT] = DataSource.SCRIPT
     created_at: datetime = Field(default_factory=get_utc_now)
+    
+    class Config:
+        use_enum_values = True
 
 # ============================================================================
 # UNIFIED DOCUMENT (VECTOR STORE)
@@ -117,8 +125,6 @@ class CinemaDocument(BaseModel):
     Unified document model for ChromaDB.
     Represents one embeddable unit from any source.
     """
-    #huni mantığı farklı yapıları tek bir standart pakete çeviren kutudur 3 farklı yerden veri geliyor.
-
 
     doc_id: str = Field(..., description="Unique document ID")
     movie: Movie
@@ -126,7 +132,7 @@ class CinemaDocument(BaseModel):
     source: DataSource
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    # Day 4 için hazırlık: Vektör alanı
+    # Vektör alanı
     embedding: Optional[List[float]] = Field(None, description="Vector representation")
     
     sentiment: Optional[SentimentResult] = None
@@ -137,24 +143,26 @@ class CinemaDocument(BaseModel):
         meta = {
             "movie_id": self.movie.movie_id,
             "movie_title": self.movie.title,
-            "source": self.source.value,
+            "source": str(self.source),
             "created_at": self.created_at.isoformat(),
-            **self.metadata
         }
+        
+        # Sentiment ekle (varsa)
         if self.sentiment:
             meta["sentiment_label"] = self.sentiment.label
             meta["sentiment_score"] = self.sentiment.score
         
+        # Metadata'yı ekle ama None değerleri filtrele (ChromaDB None kabul etmez)
+        for key, value in self.metadata.items():
+            if value is not None:
+                meta[key] = value
+        
         return self.doc_id, self.content, meta, self.embedding
 
     # --- FACTORY METHODS (TERCÜMANLAR) ---
-    #`CinemaDocument` sınıfına diyoruz ki: **"Sen kendini TMDb verisinden nasıl yaratacağını bil."**
-    # çünkü cinemadocument farklı
-    #Elimizde bir `TMDbReview` objesi var (TMDb dili konuşuyor).
-    #Bize `CinemaDocument` objesi lazım (Vektör dili konuşuyor).
 
     @classmethod
-    def from_tmdb_review(cls, movie: Movie, review: TMDbReview) -> "CinemaDocument": #dönüşüm aşaması
+    def from_tmdb_review(cls, movie: Movie, review: TMDbReview) -> "CinemaDocument":
         """TMDb yorumunu CinemaDocument formatına çevirir."""
         content = f"Title: {movie.title} ({movie.year})\n"
         content += f"User Review by {review.author}"
