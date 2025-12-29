@@ -32,7 +32,7 @@ class SentimentClient:
     def __init__(
         self,
         base_url: Optional[str] = None,
-        timeout_seconds: int = 10,
+        timeout_seconds: int = 45,
         fail_open: bool = True,
     ):
         # URL'i çevresel değişkenden al (Docker dostu)

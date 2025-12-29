@@ -42,13 +42,33 @@ class VectorStoreService:
             return
 
         # Validation
-        if len(texts) != len(embeddings) != len(metadatas):
+        if len(texts) != len(embeddings) or len(texts) != len(metadatas):
             raise ValueError("texts, embeddings ve metadatas uzunlukları eşit olmalı")
-        
+
+        # ========== KRİTİK DÜZELTME ==========
+        # ChromaDB Rust binding için embedding'leri garanti pure Python list yap
+        clean_embeddings = []
+        for emb in embeddings:
+            if emb is None:
+                continue
+            if hasattr(emb, 'tolist'):  # NumPy array
+                clean_embeddings.append(emb.tolist())
+            elif isinstance(emb, list):
+                # İç içe liste kontrolü - ilk eleman da liste mi?
+                if len(emb) > 0 and isinstance(emb[0], list):
+                    # 3 katmanlı yapı: [[0.1, 0.2, ...]] -> [0.1, 0.2, ...]
+                    clean_embeddings.append([float(x) for x in emb[0]])
+                else:
+                    # Normal yapı: [0.1, 0.2, ...]
+                    clean_embeddings.append([float(x) for x in emb])
+            else:
+                clean_embeddings.append(list(emb))
+        # =====================================
+
         # Dimension check
-        if embeddings and len(embeddings[0]) != self.EMBEDDING_DIM:
+        if clean_embeddings and len(clean_embeddings[0]) != self.EMBEDDING_DIM:
             logger.warning(
-                f"⚠️ Embedding boyutu uyumsuz: {len(embeddings[0])} "
+                f"⚠️ Embedding boyutu uyumsuz: {len(clean_embeddings[0])} "
                 f"(beklenen: {self.EMBEDDING_DIM})"
             )
 
@@ -58,7 +78,7 @@ class VectorStoreService:
                 
             self.collection.add(
                 documents=texts,
-                embeddings=embeddings,
+                embeddings=clean_embeddings,
                 metadatas=metadatas,
                 ids=ids
             )

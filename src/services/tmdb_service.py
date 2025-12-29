@@ -96,7 +96,9 @@ class TMDbService:
         """Yorumları çeker ve 'TMDbReview' modeline çevirir."""
         reviews = []
         for page in range(1, max_pages + 1):
-            data = await self._request(f"/movie/{tmdb_id}/reviews", {"page": page})
+
+            params = {"page": page, "language": "en-US"}
+            data = await self._request(f"/movie/{tmdb_id}/reviews", params)
             if not data or not data.get("results"): break
             
             for item in data["results"]:

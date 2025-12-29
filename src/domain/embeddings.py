@@ -119,7 +119,9 @@ class EmbeddingService:
                 else:
                     # Çok elemanlı batch
                     if isinstance(embeddings, list) and len(embeddings) == len(batch):
-                        all_embeddings.extend(embeddings)
+                        for emb in embeddings:
+                            all_embeddings.append(emb)  # ← TEK TEK EKLE
+                        
                     else:
                         logger.error(
                             f"❌ Batch {batch_num}: Beklenen {len(batch)} embedding, "
