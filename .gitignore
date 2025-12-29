@@ -5,3 +5,5 @@ __pycache__/
 data/
 logs/
 *.pyc
+# Debug files
+debug_models.py
