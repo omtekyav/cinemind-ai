@@ -36,7 +36,7 @@ class SentimentClient:
         fail_open: bool = True,
     ):
         # URL'i çevresel değişkenden al (Docker dostu)
-        self.base_url = base_url or os.getenv("SENTIMENT_SERVICE_URL", "http://localhost:8000")
+        self.base_url = base_url or os.getenv("SENTIMENT_SERVICE_URL", "http://localhost:8001")
         self.base_url = self.base_url.rstrip("/")
         self.batch_url = f"{self.base_url}/api/v1/analyze-batch"
         self.health_url = f"{self.base_url}/health"
