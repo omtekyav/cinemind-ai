@@ -15,41 +15,37 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Kodu Çek (Checkout)
-      uses: actions/checkout@v4
+      - name: Kodu Çek (Checkout)
+        uses: actions/checkout@v4
 
-    - name: Python 3.11 Kurulumu
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-        cache: 'pip' # Bağımlılıkları önbelleğe al (Hızlandırır)
+      - name: Python 3.11 Kurulumu
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip' # Bağımlılıkları önbelleğe al
 
-    - name: Bağımlılıkları Yükle
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        # Test araçlarını da yükleyelim (requirements'ta yoksa)
-        pip install pytest pytest-mock httpx
+      - name: Bağımlılıkları Yükle
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-mock httpx
 
-    - name: Unit Testleri Çalıştır
-      # Integration testleri API key/kota yemesin diye şimdilik sadece Unit
-      run: |
-        pytest tests/unit -v
-      env:
-        # Testler env variable ararsa hata vermesin diye dummy değerler
-        GOOGLE_API_KEY: "dummy_key"
-        TMDB_API_KEY: "dummy_key"
-        CHROMA_DB_PATH: "./chroma_db"
+      - name: Unit Testleri Çalıştır
+        run: |
+          pytest tests/unit -v
+        env:
+          GOOGLE_API_KEY: "dummy_key"
+          TMDB_API_KEY: "dummy_key"
+          CHROMA_DB_PATH: "./chroma_db"
 
   # Görev 2: Docker Build Kontrolü
   docker-build-check:
     runs-on: ubuntu-latest
-    needs: test-and-lint # Testler geçmezse build deneme bile
+    needs: test-and-lint
     
     steps:
-    - name: Kodu Çek
-      uses: actions/checkout@v4
+      - name: Kodu Çek
+        uses: actions/checkout@v4
 
-    - name: Docker Compose Build Testi
-      # Container'ları ayağa kaldırmaz, sadece build alıp hata var mı bakar
-      run: docker-compose build
+      - name: Docker Compose Build Testi
+        run: docker compose build
