@@ -53,7 +53,7 @@ class TestSentimentClientInit:
     
     def test_default_initialization(self):
         client = SentimentClient()
-        assert client.base_url == "http://localhost:8000"
+        assert client.base_url == "http://localhost:8001"
         assert client.timeout_seconds == 10
         assert client.fail_open is True
         assert client.batch_url == "http://localhost:8000/api/v1/analyze-batch"
