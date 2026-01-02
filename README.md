@@ -20,6 +20,7 @@ Dockerize edilmiş yardımcı mikroservisler ve RAG altyapısı.
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.31-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![HuggingFace](https://img.shields.io/badge/Model-BERT-yellow?logo=huggingface&logoColor=white)](https://huggingface.co/)
 [![Obsidian](https://img.shields.io/badge/Obsidian-Design-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md/)
+[![CI Pipeline](https://github.com/omtekyav/cinemind-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/omtekyav/cinemind-ai/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
 <br>
@@ -169,5 +170,6 @@ docker-compose exec cinemind_api pytest tests/ -v
 -----
 
 Built by [omtekyav](https://www.google.com/search?q=https://github.com/omtekyav)
+
 
 
