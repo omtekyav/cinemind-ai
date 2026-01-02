@@ -56,7 +56,7 @@ class TestSentimentClientInit:
         assert client.base_url == "http://localhost:8001"
         assert client.timeout_seconds == 45
         assert client.fail_open is True
-        assert client.batch_url == "http://localhost:8000/api/v1/analyze-batch"
+        assert client.batch_url == "http://localhost:8001/api/v1/analyze-batch"
         client.close()
     
     def test_custom_base_url(self):
