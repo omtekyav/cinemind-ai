@@ -19,3 +19,9 @@ python-dotenv
 requests
 tenacity
 pypdf
+
+# LangChain - Agentic RAG
+langchain-core>=0.3.32,<0.4
+langchain-google-genai>=2.0.0
+langchain-community>=0.3.16
+langgraph>=0.3.0
