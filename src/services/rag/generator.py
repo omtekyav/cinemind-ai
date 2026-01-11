@@ -1,21 +1,19 @@
 """
-Generator
-Tek sorumluluk: LLM ile cevap üretmek.
+Generator (Refactored for Agentic RAG)
+LangChain Chat Model wrapper kullanıyor.
 """
 import logging
-
-import google.generativeai as genai
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 logger = logging.getLogger(__name__)
 
 
 class Generator:
     """
-    LLM cevap üretici.
-    
-    Liskov Substitution için:
-    - Aynı interface'i implemente eden OpenAIGenerator yazılabilir
-    - Pipeline hangi generator gelirse onu kullanır
+    LangChain tabanlı Generator.
+    Tool binding'e hazır yapı.
     """
     
     SYSTEM_PROMPT = """Sen CineMind AI, bir sinema uzmanı asistansın.
@@ -28,45 +26,37 @@ KURALLAR:
 5. Kaynaklardan alıntı yaparken belirt (örn: "Senaryoya göre...")
 """
     
-    def __init__(self, api_key: str, model: str = "models/gemini-2.5-flash"):
-        genai.configure(api_key=api_key)
-        self._model = genai.GenerativeModel(model)
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
+        self._llm = ChatGoogleGenerativeAI(
+            model=model,
+            google_api_key=api_key,
+            temperature=0
+        )
         self._model_name = model
-        
-        logger.info(f"🤖 Generator başlatıldı: {model}")
+        logger.info(f"🤖 LangChain Generator başlatıldı: {model}")
     
     def generate(self, query: str, context: str) -> str:
         """
-        Context ve sorgudan cevap üret.
-        
-        Args:
-            query: Kullanıcı sorusu
-            context: Formatlanmış kaynak bilgisi
-            
-        Returns:
-            LLM cevabı
+        LCEL ile cevap üret.
+        Akış: Prompt -> LLM -> String Parser
         """
-        prompt = self._build_prompt(query, context)
-        
-        try:
-            response = self._model.generate_content(prompt)
-            answer = response.text
-            
-            logger.info(f"✅ Cevap üretildi ({len(answer)} karakter)")
-            return answer
-            
-        except Exception as e:
-            logger.error(f"❌ LLM hatası: {e}")
-            return f"Üzgünüm, şu anda cevap üretemiyorum. Hata: {type(e).__name__}"
-    
-    def _build_prompt(self, query: str, context: str) -> str:
-        """Final prompt'u oluştur."""
-        return f"""{self.SYSTEM_PROMPT}
-
-KAYNAKLAR:
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", self.SYSTEM_PROMPT),
+            ("user", """KAYNAKLAR:
 {context}
 
 KULLANICI SORUSU:
 {query}
 
-CEVAP:"""
+CEVAP:""")
+        ])
+        
+        chain = prompt | self._llm | StrOutputParser()
+        
+        try:
+            answer = chain.invoke({"context": context, "query": query})
+            logger.info(f"✅ Cevap üretildi ({len(answer)} karakter)")
+            return answer
+        except Exception as e:
+            logger.error(f"❌ LangChain hatası: {e}")
+            return f"Üzgünüm, şu anda cevap üretemiyorum. Hata: {type(e).__name__}"
