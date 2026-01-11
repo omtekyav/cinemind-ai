@@ -3,7 +3,7 @@
 
 
 #  CineMind AI
-### Modular Monolith RAG & Sentiment Analysis Platform
+### Modular Monolith Agentic RAG & Sentiment Analysis Platform
 
 **Senaryodan Ekrana Derin Analiz.**
 <br>
@@ -20,6 +20,8 @@ Dockerize edilmiş yardımcı mikroservisler ve RAG altyapısı.
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.31-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![HuggingFace](https://img.shields.io/badge/Model-BERT-yellow?logo=huggingface&logoColor=white)](https://huggingface.co/)
 [![Obsidian](https://img.shields.io/badge/Obsidian-Design-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md/)
+[![LangChain](https://img.shields.io/badge/LangChain-Orchestration-blue?logo=langchain&logoColor=white)](https://python.langchain.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Agentic-FF4B4B)](https://langchain-ai.github.io/langgraph/)
 [![CI Pipeline](https://github.com/omtekyav/cinemind-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/omtekyav/cinemind-ai/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
@@ -44,6 +46,8 @@ Veri tutarlılığını ve geliştirme hızını korumak için ana backend **Lay
 * **Multi-Source RAG:** PDF senaryoları, IMDb (Scraping) ve TMDb (API) verilerinin tek bir vektör uzayında (ChromaDB) birleştirilmesi.
 * **Microservice Integration:** Python/FastAPI tabanlı ana uygulamanın, ayrı bir container'da çalışan BERT tabanlı Sentiment Servisi ile HTTP üzerinden haberleşmesi.
 * **Clean Code & Testing:** `pytest` ile %80+ test kapsamı ve Type Hinting kullanımı.
+*  **Agentic Workflow**: LangGraph tabanlı otonom ajan yapısı. Sistem, gelen sorunun türüne göre vektör veritabanına mı (senaryo analizi) yoksa harici API'lere mi (TMDb metadata) gideceğine kendi karar verir
+*  **Context-Aware Retrieval:** Sadece anahtar kelime eşleşmesi değil, semantik (anlamsal) arama ile derinlemesine senaryo analizi.
 
 ---
 
@@ -60,6 +64,7 @@ Proje, sorumlulukların ayrılığı (SoC) ilkesine sadık kalır:
 | **DevOps** | **Containerization** | Docker & Compose | Multi-container ortam yönetimi. |
 
 ---
+
 
 ##  Proje Yapısı
 
@@ -169,7 +174,8 @@ docker-compose exec cinemind_api pytest tests/ -v
 
 -----
 
-Built by [omtekyav](https://www.google.com/search?q=https://github.com/omtekyav)
+Built by [omtekyav](https://github.com/omtekyav)
+
 
 
 
