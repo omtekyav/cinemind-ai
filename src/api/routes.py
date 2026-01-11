@@ -15,7 +15,9 @@ from src.api.schemas import (
     ErrorResponse,
     SourceTypeEnum
 )
-from src.services.rag import RAGPipeline, SourceType
+# ESKİ: RAGPipeline importunu kaldırdık
+# YENİ: LangGraph ajanını import ediyoruz
+from src.services.rag.graph import query_agent
 from src.infrastructure.vector_store import VectorStoreService
 
 logger = logging.getLogger(__name__)
@@ -31,20 +33,7 @@ router = APIRouter(prefix="/api/v1", tags=["CineMind API"])
 # DEPENDENCY INJECTION
 # =============================================================================
 
-def get_rag_pipeline() -> RAGPipeline:
-    """
-    RAG Pipeline singleton.
-    
-    Neden singleton?
-    - Her request'te yeni pipeline oluşturmak pahalı (model yükleme)
-    - Bellek verimliliği
-    - Connection pooling
-    """
-    if not hasattr(get_rag_pipeline, "_instance"):
-        logger.info("🚀 RAG Pipeline oluşturuluyor (singleton)")
-        get_rag_pipeline._instance = RAGPipeline()
-    return get_rag_pipeline._instance
-
+# NOT: get_rag_pipeline artık kullanılmadığı için kaldırıldı.
 
 def get_vector_store() -> VectorStoreService:
     """Vector Store singleton."""
@@ -54,7 +43,7 @@ def get_vector_store() -> VectorStoreService:
 
 
 # =============================================================================
-# QUERY ENDPOINT
+# QUERY ENDPOINT (GÜNCELLENDİ 🚀)
 # =============================================================================
 
 @router.post(
@@ -64,58 +53,34 @@ def get_vector_store() -> VectorStoreService:
         400: {"model": ErrorResponse, "description": "Geçersiz istek"},
         500: {"model": ErrorResponse, "description": "Sunucu hatası"}
     },
-    summary="RAG Sorgusu",
-    description="Sinema veritabanında semantik arama yapar ve LLM ile cevap üretir."
+    summary="Agentic RAG Sorgusu",
+    description="LangGraph agent ile sinema veritabanında arama yapar ve cevap üretir."
 )
-async def query(
-    request: QueryRequest,
-    pipeline: RAGPipeline = Depends(get_rag_pipeline)
-) -> QueryResponse:
+async def query(request: QueryRequest) -> QueryResponse:
     """
-    RAG Query Endpoint.
+    Agentic RAG Query Endpoint.
     
     Flow:
-    1. Request validation (Pydantic otomatik yapar)
-    2. Source filter mapping (API enum → Internal enum)
-    3. Pipeline çağrısı
-    4. Response mapping (Internal DTO → API schema)
+    1. Kullanıcı sorusu alınır
+    2. LangGraph agent çağrılır (Tools: TMDb, VectorDB)
+    3. Agent düşünür, araçları kullanır ve cevap üretir
     """
     logger.info(f"📨 Query request: {request.question[:50]}...")
     
     try:
-        # Source filter mapping: API enum → RAG enum
-        source_filter = None
-        if request.source_filter:
-            source_filter = SourceType(request.source_filter.value)
+        # Agentic RAG - LangGraph Çağrısı
+        # query_agent fonksiyonu graph'ı derler, çalıştırır ve son cevabı döner
+        answer = query_agent(request.question)
         
-        # RAG Pipeline çağrısı
-        result = pipeline.query(
-            question=request.question,
-            limit=request.limit,
-            source_filter=source_filter
-        )
-        
-        # Response mapping: Internal DTO → API Schema
-        sources = [
-            SourceDocument(
-                content=src.content[:500],  # Truncate for response size
-                source=SourceTypeEnum(src.source.value),
-                movie_title=src.movie_title,
-                distance=round(src.distance, 4)
-            )
-            for src in result.sources
-        ]
-        
+        # Response Mapping
+        # Not: Şimdilik 'sources' boş dönüyor çünkü Agent'tan kaynakları ayrıştırmak
+        # ekstra işlem gerektirir (metadata parsing). MVP için bu yeterli.
         return QueryResponse(
-            answer=result.answer,
-            sources=sources,
-            query=result.query,
-            source_count=len(sources),
-            token_usage=TokenUsage(
-                input_tokens=result.tokens_used,  # TODO: Detaylı token tracking
-                output_tokens=0,
-                total_tokens=result.tokens_used
-            ) if result.tokens_used else None
+            answer=answer,
+            sources=[], 
+            query=request.question,
+            source_count=0,
+            token_usage=None
         )
         
     except Exception as e:
@@ -127,7 +92,7 @@ async def query(
 
 
 # =============================================================================
-# INGEST ENDPOINT
+# INGEST ENDPOINT (DEĞİŞMEDİ)
 # =============================================================================
 
 @router.post(
@@ -146,10 +111,6 @@ async def ingest(
 ) -> IngestResponse:
     """
     Ingestion Endpoint.
-    
-    Neden BackgroundTasks?
-    - Ingestion uzun sürer (API timeout'a düşmesin)
-    - Client hemen cevap alır, işlem arka planda devam eder
     """
     logger.info(f"📥 Ingest request: {request.source.value}, limit={request.limit}")
     
@@ -169,6 +130,7 @@ async def ingest(
 
 async def _run_ingestion(source: str, limit: int):
     """Background ingestion task."""
+    # Lazy import to avoid circular dependencies
     from src.services.ingestion_coordinator import IngestionCoordinator
     
     logger.info(f"🔄 Background ingestion başladı: {source}")
@@ -195,7 +157,7 @@ async def _run_ingestion(source: str, limit: int):
 
 
 # =============================================================================
-# MOVIE ENDPOINT
+# MOVIE ENDPOINT (DEĞİŞMEDİ)
 # =============================================================================
 
 @router.get(
@@ -213,16 +175,9 @@ async def get_movie(
 ) -> MovieResponse:
     """
     Movie Detail Endpoint.
-    
-    Neden GET?
-    - Idempotent: Aynı ID her zaman aynı sonucu verir
-    - Cacheable: CDN/Browser cache yapılabilir
-    - Safe: Sunucu state'ini değiştirmez
     """
     logger.info(f"🎬 Movie request: {movie_id}")
     
-    # Vector store'dan film metadata'sı ara
-    # TODO: Dedicated movie service eklenebilir
     results = vector_store.collection.get(
         where={"movie_id": movie_id},
         limit=1
@@ -236,7 +191,6 @@ async def get_movie(
     
     metadata = results["metadatas"][0]
     
-    # Document count for this movie
     all_docs = vector_store.collection.get(
         where={"movie_id": movie_id}
     )
@@ -255,7 +209,7 @@ async def get_movie(
 
 
 # =============================================================================
-# HEALTH ENDPOINT
+# HEALTH ENDPOINT (DEĞİŞMEDİ)
 # =============================================================================
 
 @router.get(
@@ -269,22 +223,15 @@ async def health_check(
 ) -> HealthResponse:
     """
     Health Check Endpoint.
-    
-    Neden önemli?
-    - Kubernetes/Docker liveness probe
-    - Load balancer health check
-    - Monitoring sistemleri
     """
     services = {}
     
-    # Vector Store check
     try:
         count = vector_store.count()
         services["vector_store"] = f"ok ({count} documents)"
     except Exception as e:
         services["vector_store"] = f"error: {str(e)}"
     
-    # Embedding service check
     try:
         from src.domain.embeddings import EmbeddingService
         emb = EmbeddingService()
@@ -292,7 +239,6 @@ async def health_check(
     except Exception as e:
         services["embedding"] = f"error: {str(e)}"
     
-    # LLM check (sadece config, actual call pahalı)
     try:
         from src.infrastructure.config import get_settings
         settings = get_settings()
@@ -303,7 +249,6 @@ async def health_check(
     except Exception as e:
         services["llm"] = f"error: {str(e)}"
     
-    # Overall status
     all_ok = all("ok" in str(v) for v in services.values())
     status = "healthy" if all_ok else "degraded"
     
