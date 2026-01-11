@@ -25,6 +25,7 @@ FROM base as dependencies
 # Sistem bağımlılıkları (build için gerekli)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Requirements dosyasını kopyala
